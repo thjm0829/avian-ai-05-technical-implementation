@@ -2,9 +2,29 @@
 
 > **작성 상태:** 세부 내용 작성 완료
 >
-> **핵심 결론:** 현재 핵심 제품은 양계장 계분벨트의 1개 Sampling Point에서 분변을 반복 소량채취하는 Sampling Unit, 시료를 전처리하고 상용 AIV 신속항원키트를 자동 검사하는 Analysis Unit, 검사결과를 축적·분석하는 AI Early Warning Platform으로 구성한다. 다지점 감시와 Epidemiological Risk Graph는 현재 제품과 분리된 단계적 고도화 기술로 구현한다.
+> **핵심 결론:** 현재 핵심 제품은 계분벨트식 산란계·종계 농장의 1개 Sampling Point에서 분변을 반복 소량채취하는 Sampling Unit, 시료를 전처리하고 상용 AIV 신속항원키트를 자동 검사하는 Analysis Unit, 검사결과를 축적·분석하는 AI Early Warning Platform으로 구성한다. 다지점 감시와 Epidemiological Risk Graph는 현재 제품과 분리된 단계적 고도화 기술로 구현한다.
 
 5장은 4장에서 제시한 솔루션을 실제 장치·소프트웨어·데이터 구조로 구현하는 방법을 정의한다. 본 시스템은 AIV를 확진하지 않으며, 반복 가능한 현장 검사데이터를 생성하고 공식검사가 필요한 농장의 우선순위를 제시하는 예찰보조 시스템으로 구현한다.
+
+## 공모전 단계 기술성숙도와 확정범위
+
+| 구성요소 | 현재 근거수준 | 공모전에서 제시할 내용 | 공모전 이후 확정할 내용 |
+|---|---|---|---|
+| Sampling Unit | 개념설계 | 위치·동작·안전복귀 구조 | 실제 벨트 간섭, 채취량·대표성 |
+| Composite Cartridge | 개념설계 | 일회용 Wet Zone과 처리흐름 | 재질·금형·MOQ·단가·밀폐성 |
+| Analysis Unit | 단위기능 설계 | 혼합·침전·상층액·분주 State | 실제 분변 반복성, 키트 호환성 |
+| Camera Reader | 구현 가능한 영상처리 구조 | 고정광학·ROI·C선·T선·QC | 기준판독 일치도와 환경강건성 |
+| Risk Engine | 규칙기반 설계 | 재검·Reason Code·변화추세 | 공식 Label 기반 성능과 임계값 |
+| Dashboard | 요구사항 정의 | 농장·장치·경보·조치이력 | 사용자평가·보안·조달규격 |
+| 공식연계 | 인터페이스 후보 | Mock·자체허용 데이터 구조 | 제공권한·법적근거·API 조건 |
+
+### 기술 의사결정 원칙
+
+- 공모전 문서의 부품명과 구조는 구현후보이며 최종 양산사양이 아니다.
+- 키트 IFU, 시제품 시험과 전문기관 검토가 충돌하면 현재 설계를 수정한다.
+- 정확도·검출한계·최적 희석비·대표범위를 실증 전에 확정하지 않는다.
+- 공모전 이후 Gate 0에서 키트·규제·시험경로를 확인하고 Gate 1~4에서 기계·분석·현장 성능을 순차적으로 동결한다.
+- OEM 견적과 부품 공급성은 시제품 사양이 안정된 뒤 최소 2개 후보를 비교한다.
 
 ## 5.1 전체 시스템 구성
 
@@ -26,7 +46,7 @@ Analysis Unit
 AIV Rapid Cassette
         ↓
 Camera AI Reader
-정성 결과 / C·T Signal / T·C 반정량 신호
+정성 결과 / C·T Signal / T/C 반정량 신호
         ↓
 
 [AI Early Warning Platform]
@@ -60,7 +80,7 @@ Movement Risk / Network Risk
 |---|---|---|
 | Sampling Unit | 계분벨트 운전 중 분변 반복 소량채취, Composite Sample 생성 | 현재 MVP |
 | Analysis Unit | 혼합, 침전, 상층액 채취, AIV 키트 자동분주 | 현재 MVP |
-| Camera AI Reader | C/T선 판독, 정성 결과와 반정량 신호 생성, 영상 QC | 현재 MVP |
+| Camera AI Reader | C선·T선 판독, 정성 결과와 반정량 신호 생성, 영상 QC | 현재 MVP |
 | Edge Controller | 센서·모터 제어, 검사 State Machine, 시간기록 | 현재 MVP |
 | AI Early Warning Engine | 시계열 특징값, Risk Score, Reason Codes, 재검 우선순위 | 현재 MVP |
 | Dashboard | 장비상태, 검사이력, 위험도, 알림과 조치이력 표시 | 현재 MVP |
@@ -84,7 +104,7 @@ ESP32 또는 STM32 계열 MCU는 실시간 장치제어를 담당한다.
 Raspberry Pi 또는 Mini PC는 영상분석과 데이터처리를 담당한다.
 
 - Camera Capture
-- OpenCV 기반 C/T선 판독
+- OpenCV 기반 C선·T선 판독
 - T/C 반정량 신호 계산
 - 검사 QC
 - 검사이력 DB
@@ -361,7 +381,7 @@ Sampling Point, Sampling Cycle, Composite Sample, RapidTest, TestImage와 Optica
 - 시료와 키트 ID·Lot
 - 전처리 시작시각
 - 분주시각과 판독시각
-- 이미지와 C/T 신호
+- 이미지와 C선·T선 신호
 - 정성 결과와 QC
 - 재검 관계
 - 위험도와 권고조치
@@ -442,14 +462,14 @@ Mock 데이터도 실제 데이터와 같은 식별자와 스키마를 사용하
 
 ### 1. Camera AI
 
-Camera AI는 Cassette 위치와 C/T선을 탐지하고 정성 결과, T/C 반정량 신호와 QC를 생성한다. 이는 현장 영상을 반복 가능한 구조화 데이터로 전환하는 역할이다.
+Camera AI는 Cassette 위치와 C선·T선을 탐지하고 정성 결과, T/C 반정량 신호와 QC를 생성한다. 이는 현장 영상을 반복 가능한 구조화 데이터로 전환하는 역할이다.
 
 ### 2. AI Early Warning Engine
 
 주요 입력:
 
 - AIV 정성 검사결과
-- C/T optical signal과 T/C 반정량 신호
+- C선·T선 optical signal과 T/C 반정량 신호
 - 동일 Sampling Point의 이전 검사결과
 - 직전 검사 대비 변화량
 - 최근 N회 변화추세와 연속 상승
