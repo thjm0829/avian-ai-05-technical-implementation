@@ -547,7 +547,7 @@ Software·AI:
 
 - 장비상태와 검사 스케줄러
 - Sampling Point·Sample·Kit ID 관리
-- Camera Capture와 C/T ROI 판독
+- Camera Capture와 C선·T선 ROI 판독
 - T/C 반정량 신호와 QC
 - 검사이력 DB
 - Sampling Point별 시계열 분석
